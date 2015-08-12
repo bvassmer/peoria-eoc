@@ -1,0 +1,264 @@
+﻿<HTML>
+<HEAD>
+<SCRIPT SRC="http://maps.google.com/maps?file=api&v=2&key=ABQIAAAAml9OTtgZmGj4pxuQ26WewRRRHXJej-miOZUKEfs9LBWsW6SXMRTVyS-hoh71aEcTrP-LfMreHaJ3tQ" TYPE="text/javascript"></SCRIPT>
+<script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>  
+<script type="text/javascript" src="js/jquery.gmap-1.1.0-min.js"></script>        
+
+<SCRIPT TYPE="text/javascript">
+//<![CDATA[
+var map;
+window.setInterval(refreshMap, 15000);
+var peopleCount = 0;
+
+function createMap() {
+	if (GBrowserIsCompatible()) {
+			map = new GMap2(document.getElementById("map"));
+			map.setUIToDefault();
+			map.addControl(new GMapTypeControl());
+			map.setCenter(new GLatLng(40.72332345541449,-89.60174560546875), 10);
+			geocoder = new GClientGeocoder();
+			
+			GEvent.addListener(map, "click", 
+				function(overlay, point){
+				//map.clearOverlays();
+					if (point) {
+						var tempPersonName = prompt("Please enter spotter name:");
+						if (tempPersonName == null) {
+						
+						} else {
+							tempMarker = new GMarker(point, {draggable: true, title: tempPersonName});
+												
+							var location = tempMarker.getLatLng();
+							var personLat = location.lat();
+							var personLong = location.lng();
+							
+							$.ajax({
+						  		url: "eoc_jq.php?action=2&spottersid="+peopleCount+"&name="+tempPersonName+"&lat="+personLat+"&long="+personLong,
+							}).done(function( msg ) {
+						  		refreshMap();
+							});
+						}
+					}
+					
+					if (overlay) {
+						if (overlay.getTitle() == null) {
+							
+						} else {
+							if (confirm("Delete this spotter?")) {
+								$.ajax({
+							  		url: "eoc_jq.php?action=4&spottersid="+overlay.id,
+								}).done(function( msg ) {
+							  		refreshMap();
+								});
+							}
+						}
+					}
+				}
+			);
+		}
+}
+
+//
+function refreshMap() { 
+	$.ajax({
+  		url: "eoc_jq.php?action=1",
+	}).done(function( msg ) {
+  		loadMapData(msg);
+	});
+}
+
+function moveSpotter() {
+	
+
+}
+
+$(document).ready(
+function() {
+	peopleCount = 0;
+	peopleMarkers = new Array();
+
+	SetMapSize();
+	createMap();
+    refreshMap();
+},
+function(){
+     	//$(this).removeClass("green");
+});
+	//});        
+
+function loadMapData(xml) {
+		/*clear all*/
+		map.clearOverlays();
+		var tempPeopleCount = 0;
+		
+		xmlDoc = $.parseXML(xml);
+	    $xml = $(xmlDoc);
+	    $timestamp= $xml.find("timestamp");
+	    
+		/* append "RSS Title" to #someElement */
+		$("div#datatimestamp").html("Last Updated: " + $timestamp.text());
+	
+		markers = [];
+		$(xml).find("spotter").each(function () { 
+			tempPeopleCount  = $(this).find("spottersid").text();
+			var name = $(this).find("name").text();
+			var lat = $(this).find("lat").text();
+			var lng = $(this).find("long").text();
+			peopleMarkers[tempPeopleCount] = new GMarker(new GLatLng(lat, lng), {draggable: true, title:name});
+			peopleMarkers[tempPeopleCount].id = tempPeopleCount;
+			map.addOverlay(peopleMarkers[tempPeopleCount]);
+			
+			GEvent.addListener(peopleMarkers[tempPeopleCount], 'dragend', listener_dragging);
+
+			
+	    });
+	    
+	    peopleCount = tempPeopleCount + 1;
+}
+
+function listener_dragging(overlay) {
+	if (overlay) {
+		var eventlocation = overlay.getLatLng();
+		var EventPersonLat = eventlocation.lat();
+		var EventPersonLong = eventlocation.lng();					
+		$.ajax({
+	  		url: "eoc_jq.php?action=3&spottersid=" + peopleCount + "&lat=" + EventPersonLat + "&long=" + EventPersonLong,
+		}).done(function( msg ) {
+	  		refreshMap();
+		});
+	}
+
+}
+
+var toggleRadarState = 1;
+var toggleWarningState = 1;
+var radarKML; 
+var warningKML;
+
+GMarker.prototype.id = -1;
+
+var RadarURL = "http://wdssii.nssl.noaa.gov/geotiff_new/conus_full.kmz";
+//var WarningURL = "http://wdssii.nssl.noaa.gov/geotiff_new/nws_warnings.kmz";
+//var WarningURL = "http://wdssii.nssl.noaa.gov/geotiff/warnings/NWS_Warnings.kml";
+//var WarningURL = "http://www.srh.noaa.gov/gis/warnings/poly.kml";
+
+
+
+
+function SetMapSize() {
+	 var viewportwidth;
+	  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+	 
+	 if (typeof window.innerWidth != 'undefined')
+	 {
+	      viewportwidth = window.innerWidth
+	 }
+	 
+	// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+	
+	 else if (typeof document.documentElement != 'undefined'
+	     && typeof document.documentElement.clientWidth !=
+	     'undefined' && document.documentElement.clientWidth != 0)
+	 {
+	       viewportwidth = document.documentElement.clientWidth
+	 }
+	 
+	 // older versions of IE
+	 
+	 else
+	 {
+	       viewportwidth = document.getElementsByTagName('body')[0].clientWidth
+	 }
+	 	viewportwidth = viewportwidth - 20;
+		// get the div element
+		d = document.getElementById('map');
+		// set the width
+		d.style.width=viewportwidth+"px";
+		
+		 var viewportheight;
+	  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+	 
+	 if (typeof window.innerWidth != 'undefined')
+	 {
+	      viewportheight = window.innerHeight
+	 }
+	 
+	// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+	
+	 else if (typeof document.documentElement != 'undefined'
+	     && typeof document.documentElement.clientWidth !=
+	     'undefined' && document.documentElement.clientWidth != 0)
+	 {
+	       viewportheight = document.documentElement.clientHeight
+	 }
+	 
+	 // older versions of IE
+	 
+	 else
+	 {
+	       viewportheight = document.getElementsByTagName('body')[0].clientHeight
+	 }
+	 
+	 	viewportheight = viewportheight - 40;
+		// set the width
+		d.style.height=viewportheight+"px";
+}
+
+ 
+function toggleRadar() {
+      if (toggleRadarState == 1) {
+	        map.removeOverlay(radarKML);
+	        toggleRadarState = 0;
+      } else {
+	        map.addOverlay(radarKML);
+	        toggleRadarState = 1;
+      }
+}
+
+	
+function RefreshPage() {
+	Save();
+	var param = "";
+	makeRequest('eoc_jq.php',param);
+}
+
+//]]>
+</SCRIPT>
+<STYLE TYPE="text/css">
+<!--
+.style1 {color: #FF0000}
+.style2 {color: #006600}
+.style3 {
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+.style4 {font-family: Verdana, Arial, Helvetica, sans-serif}
+.style5 {color: #990099}
+.style6 {color: #CC6600}
+#datatimestamp{
+	display:inline;
+	font-size:smaller;
+	font-weight:lighter;
+}
+-->
+</STYLE>
+<TITLE>Peoria EOC Spotter Locations - v1.02 - By Ben Vassmer</TITLE></HEAD>
+<BODY>
+<TABLE WIDTH="100%">
+<TR>
+<TD WIDTH="33%" ALIGN="left"><DIV CLASS="style4" STYLE="font-weight:bold;">Peoria EOC Spotter Locations <A HREF="versions.html">v2.00</A></DIV></TD>
+<TD WIDTH="67%" ALIGN="right">   <DIV CLASS="style3"><div id="datatimestamp"></div> | <!--<a href="#" class="style5" onClick="toggleRadar();">Toggle Radar</a> | --><A HREF="#" CLASS="style2" onClick="RefreshPage();">Refresh Page</A> | <A HREF="#" onClick="ResetZoom();">Reset Zoom</A> | <A HREF="#" CLASS="style1" onClick="DeleteAllSpotters();">Delete ALL</A></DIV></TD>
+</TR>
+</TABLE>
+
+<DIV ID="map" STYLE="width: 700px; height: 600px"></DIV><BR/><script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-15127086-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</BODY>
+</HTML>

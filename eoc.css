@@ -1,0 +1,29 @@
+@charset "utf-8";
+/* CSS Document */
+
+.menuDeleteAll {
+	color: #FF0000
+	}
+
+.menuRefresh {
+	color: #006600
+	}
+	
+.menu {
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	}
+	
+.title {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	}
+	
+.menuRadar {
+	color: #990099;
+	}
+	
+.style6 {
+	color: #CC6600;
+	}
+

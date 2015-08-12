@@ -1,0 +1,393 @@
+<HTML>
+<HEAD>
+<SCRIPT SRC="http://maps.google.com/maps?file=api&v=2&key=ABQIAAAAml9OTtgZmGj4pxuQ26WewRRRHXJej-miOZUKEfs9LBWsW6SXMRTVyS-hoh71aEcTrP-LfMreHaJ3tQ" TYPE="text/javascript"></SCRIPT>
+<SCRIPT TYPE="text/javascript">
+//<![CDATA[
+var map;
+var toggleRadarState = 1;
+var toggleWarningState = 1;
+var radarKML; 
+var warningKML;
+
+GMarker.prototype.id = -1;
+
+var RadarURL = "http://wdssii.nssl.noaa.gov/geotiff_new/conus_full.kmz";
+//var WarningURL = "http://wdssii.nssl.noaa.gov/geotiff_new/nws_warnings.kmz";
+//var WarningURL = "http://wdssii.nssl.noaa.gov/geotiff/warnings/NWS_Warnings.kml";
+//var WarningURL = "http://www.srh.noaa.gov/gis/warnings/poly.kml";
+
+
+function Save() { 
+	var mapzoom=map.getZoom(); 
+	var mapcenter=map.getCenter(); 
+	var maplat=mapcenter.lat(); 
+	var maplng=mapcenter.lng(); 
+	var cookiestring=maplat+"_"+maplng+"_"+mapzoom; 
+	var exp = new Date(); 
+	
+	//set new date object 
+	exp.setTime(exp.getTime() + (1000 * 60 * 60 * 24 * 30)); 
+	//set it 30 days ahead 
+	setCookie("DaftLogicGMRLL",cookiestring, exp); 
+} 
+
+function setCookie(name, value, expires) { 
+	document.cookie = name + "=" + escape(value) + "; path=/" + ((expires == null) ? "" : "; expires=" + expires.toGMTString()); 
+} 
+
+function getCookie(c_name) { 
+	if (document.cookie.length>0) { 
+		c_start=document.cookie.indexOf(c_name + "="); 
+		if (c_start!=-1) { 
+			c_start=c_start + c_name.length+1; 
+			c_end=document.cookie.indexOf(";",c_start); 
+			if (c_end==-1) c_end=document.cookie.length; 
+			return unescape(document.cookie.substring(c_start,c_end)); 
+			} 
+		} 
+	return ""; 
+} 
+
+function del_cookie(name) {
+	document.cookie = name + '=; expires=Thu, 01-Jan-70 00:00:01 GMT;';
+} 
+
+function loadMap(){
+	map = new GMap2(document.getElementById("map"));
+	map.enableScrollWheelZoom();
+	
+	//works
+	//radarKML = new GGeoXml(RadarURL); 
+	//warningKML = new GGeoXml(WarningURL);
+
+    //map.addOverlay(radarKML);
+	//map.addOverlay(warningKML);
+
+	
+	var loadedstring=getCookie("DaftLogicGMRLL"); 
+	var splitstr = loadedstring.split("_"); 
+	
+	var peopleMarkers = new Array();
+	var peopleNames = new Array();
+	var peopleLat = new Array();
+	var peopleLong = new Array();
+	
+	var peopleCount = 1;
+	var param = "";
+	
+	map.addControl(new GLargeMapControl());
+	map.addControl(new GMapTypeControl());
+	
+	map.setCenter(new GLatLng(35.199574,-97.441453), 7);
+
+
+	<?php
+	//database variables
+	//$username="dbo250840345";
+	//$password="NerBpU9t";
+	//$database="db250840345";
+	
+	//table name varibales
+	//$table="spotters";
+	
+	//$link = mysql_connect("db1567.perfora.net",$username,$password);
+	//@mysql_select_db($database) or die( "Unable to select database");
+	//
+	//$spotters = mysql_query("SELECT * FROM $table ORDER BY spottersid ASC") or die(mysql_error());
+	
+	$trackingXML = $_POST['trackingXML']
+	echo $trackingXML
+	//while($row = mysql_fetch_array($spotters)) {
+		//Put Spotters onto Map at load
+		//echo "peopleCount = ";
+		//echo $row['spottersid'];
+		//echo ";\n";
+		//echo "peopleMarkers[peopleCount] = new GMarker(new GLatLng(";
+		//echo $row['lat'];
+		//echo ",";
+		//echo $row['long'];
+		//echo "), {draggable: true, title:'";
+		//echo $row['name'];
+		//echo $row['spottersid'];
+		//echo "'});\n";
+		//echo "peopleMarkers[peopleCount].id = peopleCount;";
+		//echo "map.addOverlay(peopleMarkers[peopleCount]);\n";
+		//echo "peopleCount++;\n";
+		
+		//echo "GEvent.addListener(peopleMarkers[";
+		//echo $row['spottersid'];
+		//echo "], 'dragend', function(overlay) {\n";
+		//echo "if (overlay) {\n";
+		//echo "var eventlocation = peopleMarkers[";
+		//echo $row['spottersid'];
+		//echo "].getLatLng();\n";
+		//echo "var EventPersonLat = eventlocation.lat();\n";
+		//echo "var EventPersonLong = eventlocation.lng();\n";
+		//echo "param = '?action=3&spottersid=+";
+		//echo $row['spottersid'];
+		//echo "&lat='+EventPersonLat+'&long='+EventPersonLong;\n";
+		//echo "Save();";
+		//echo "makeRequest('eoc.php',param);";
+		//echo "}\n";
+		//echo "});\n";
+		
+		
+	//} 
+	?>
+	peopleCount++;
+	
+	GEvent.addListener(map, "click", 
+		function(overlay, point){
+		//map.clearOverlays();
+			if (point) {
+				Save();
+				var tempPersonName = prompt("Please enter spotter name:");
+				if (tempPersonName == null) {
+				
+				} else {
+					peopleMarkers[peopleCount] = new GMarker(point, {draggable: true, title: tempPersonName});
+					peopleMarkers[peopleCount].id = peopleCount;
+					map.addOverlay(peopleMarkers[peopleCount]);
+					var msg = "";
+					//map.panTo(point);
+					
+					var location = peopleMarkers[peopleCount].getLatLng();
+					var personLat = location.lat();
+					var personLong = location.lng();
+					param = "?action=2&spottersid="+peopleCount+"&name="+tempPersonName+"&lat="+personLat+"&long="+personLong;
+					//alert(param);
+					makeRequest('eoc.php',param);
+					
+					for (i = 0; i <= peopleCount; i++) {
+						var loc = peopleMarkers[i].getLatLng();
+						msg += "Latitude: "+loc.lat()+" "+"Longitude: "+loc.lng()+"<br>";
+					}
+			
+					//msg = "Latitude: "+point.lat()+"<br />"+"Longitude: "+point.lng();
+					document.getElementById("mypoint").innerHTML = msg;
+				}
+			}
+			
+			if (overlay) {
+				if (overlay.getTitle() == null) {
+					
+				} else {
+					if (confirm("Delete this spotter?")) {
+						Save();
+						param = "?action=4&spottersid="+overlay.id;
+						makeRequest('eoc.php',param);
+					}
+				}
+			}
+		}
+	);
+	
+		GEvent.addListener(map, "doubleclick", 
+		function(overlay, point){
+		//map.clearOverlays();
+			if (point) {
+				
+			}
+			
+			if (overlay) {
+				if (overlay.getTitle() == null) {
+					
+				} else {
+					if (confirm("Delete this spotter?")) {
+						Save();
+						param = "?action=4&spottersid="+overlay.id;
+						makeRequest('eoc.php',param);
+					}
+				}
+			}
+		}
+	);
+
+	
+	GEvent.addListener(map,"addoverlay", 
+		function(overlay) {
+			if(overlay) {
+				
+				//alert("addoverlay");
+			}
+		});
+	
+}
+// arrange for our onload handler to 'listen' for onload events
+if (window.attachEvent) {
+window.attachEvent("onload", function() {
+loadMap();	// Internet Explorer
+});
+} else {
+window.addEventListener("load", function() {
+loadMap(); // Firefox and standard browsers
+}, false);
+}
+
+function DeleteAllSpotters() {
+	if (confirm("Delete ALL spotters? This action cannot be undone!")) {
+		del_cookie("DaftLogicGMRLL");
+		var param = "";
+		makeRequest('eoc.php?action=1969', param);
+		return false;
+	}
+}
+
+function ResetZoom() {
+	del_cookie("DaftLogicGMRLL");
+	var param = "";
+	makeRequest('eoc.php',param);
+}
+
+function makeRequest(url, parameters){
+	if (window.XMLHttpRequest) { // Mozilla, Safari,...
+		http_request = new XMLHttpRequest();
+		if (http_request.overrideMimeType)
+		{
+			http_request.overrideMimeType('text/xml');
+		}
+	}
+	else if (window.ActiveXObject) { // IE
+		try {
+		http_request = new ActiveXObject("Msxml2.XMLHTTP");
+		} catch (e) {
+		try {
+		http_request = new ActiveXObject("Microsoft.XMLHTTP");
+		} catch (e) {}
+		}
+	}
+	if (!http_request) {
+		alert('Cannot create XMLHTTP instance');
+		return false;
+	}
+	http_request.onreadystatechange = alertContents;
+	http_request.open('GET', url + parameters, true);
+	http_request.send(null);
+}
+
+function alertContents() {
+  if (http_request.readyState == 4) {
+      if (http_request.status == 200) {
+          //alert(http_request.responseText);
+		  window.location.reload(true);
+      } else {
+          alert('There was a problem with the request.');
+      }
+  }
+} 
+
+
+
+function SetMapSize() {
+ var viewportwidth;
+  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+ 
+ if (typeof window.innerWidth != 'undefined')
+ {
+      viewportwidth = window.innerWidth
+ }
+ 
+// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+
+ else if (typeof document.documentElement != 'undefined'
+     && typeof document.documentElement.clientWidth !=
+     'undefined' && document.documentElement.clientWidth != 0)
+ {
+       viewportwidth = document.documentElement.clientWidth
+ }
+ 
+ // older versions of IE
+ 
+ else
+ {
+       viewportwidth = document.getElementsByTagName('body')[0].clientWidth
+ }
+ 	viewportwidth = viewportwidth - 20;
+	// get the div element
+	d = document.getElementById('map');
+	// set the width
+	d.style.width=viewportwidth+"px";
+	
+	 var viewportheight;
+  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+ 
+ if (typeof window.innerWidth != 'undefined')
+ {
+      viewportheight = window.innerHeight
+ }
+ 
+// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+
+ else if (typeof document.documentElement != 'undefined'
+     && typeof document.documentElement.clientWidth !=
+     'undefined' && document.documentElement.clientWidth != 0)
+ {
+       viewportheight = document.documentElement.clientHeight
+ }
+ 
+ // older versions of IE
+ 
+ else
+ {
+       viewportheight = document.getElementsByTagName('body')[0].clientHeight
+ }
+ 
+ 	viewportheight = viewportheight - 40;
+	// set the width
+	d.style.height=viewportheight+"px";
+}
+
+ 
+  function toggleRadar() {
+      if (toggleRadarState == 1) {
+        map.removeOverlay(radarKML);
+        toggleRadarState = 0;
+      } else {
+        map.addOverlay(radarKML);
+        toggleRadarState = 1;
+      }
+    }
+
+	
+	function RefreshPage() {
+		Save();
+		var param = "";
+		makeRequest('eoc.php',param);
+	}
+
+//]]>
+</SCRIPT>
+<STYLE TYPE="text/css">
+<!--
+.style1 {color: #FF0000}
+.style2 {color: #006600}
+.style3 {
+	font-weight: bold;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+}
+.style4 {font-family: Verdana, Arial, Helvetica, sans-serif}
+.style5 {color: #990099}
+.style6 {color: #CC6600}
+-->
+</STYLE>
+<TITLE>Peoria EOC Spotter Locations - v1.02 - By Ben Vassmer</TITLE></HEAD>
+<BODY onLoad=" SetMapSize();loadMap()">
+<TABLE WIDTH="100%">
+<TR>
+<TD WIDTH="45%" ALIGN="left"><DIV CLASS="style4" STYLE="font-weight:bold;">CIDL UPS Location Tracker <A HREF="versions.html">v0.10 BETA</A></DIV></TD>
+<TD WIDTH="55%" ALIGN="right">   <SPAN CLASS="style3"><!--<a href="#" class="style5" onClick="toggleRadar();">Toggle Radar</a> | -->
+</SPAN></TD>
+</TR>
+</TABLE>
+
+<DIV ID="map" STYLE="width: 700px; height: 600px"></DIV><BR/><script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-15127086-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</BODY>
+</HTML>

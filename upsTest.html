@@ -1,0 +1,280 @@
+<HTML><HEAD><SCRIPT SRC="http://maps.google.com/maps?file=api&v=2&key=ABQIAAAAml9OTtgZmGj4pxuQ26WewRRRHXJej-miOZUKEfs9LBWsW6SXMRTVyS-hoh71aEcTrP-LfMreHaJ3tQ" TYPE="text/javascript"></SCRIPT>
+<TITLE>UPS Tracking</TITLE></HEAD>
+<BODY onLoad="SetMapSize();loadMap()" TOPMARGIN="0" LEFTMARGIN="0" RIGHTMARGIN="0">
+<DIV ID="map" STYLE="width: 700px; height: 600px"></DIV>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-15127086-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</BODY>
+</HTML>
+
+<SCRIPT TYPE="text/javascript">
+var map;
+
+function loadMap(){
+	map = new GMap2(document.getElementById("map"));
+	map.enableScrollWheelZoom();
+		
+	var param = "";
+	var trackingMarkers = new Array();
+	var tempLatLong;
+	var latlngbounds = new GLatLngBounds( );
+
+	map.addControl(new GLargeMapControl());
+	//map.addControl(new GMapTypeControl());
+
+	//map.setCenter(new GLatLng(40.72332345541449,-89.60174560546875), 8);
+	
+	
+	<?php
+		//libxml_use_internal_errors(true);
+		//echo "var trackingXML = \"".$_POST['trackingXML']."\"";
+		$unfixedXML = $_POST['trackingXML'];
+		$fixedXML = str_replace(chr(92),"",$unfixedXML);
+		$simplexmldoc=simplexml_load_string($fixedXML);
+		$count = 0;
+
+		$activityArray = $simplexmldoc->Shipment->Package->Activity;
+		if (!count($activityArray) < 1)
+		{
+			//var_dump($simplexmldoc);
+			//echo $trackingXML;
+			echo "		var trackingLine = new GPolyline([";
+			//echo $fixedXML;
+			///TrackResponse/Shipment/Package/Activity
+			$trackingPoints = "";
+			foreach ($simplexmldoc->Shipment->Package->Activity as $activity)
+			//foreach ($simplexmldoc->xpath("Activity") as $activity)
+			{
+				if ($count > 0 )
+				{
+					$trackingPoints = $trackingPoints.",";
+				}
+				//TrackResponse/Shipment/Package/Activity/ActivityLocation/Address/City
+				$city = $activity->ActivityLocation->Address->City;
+				$state = $activity->ActivityLocation->Address->StateProvinceCode;
+				$country = $activity->ActivityLocation->Address->CountryCode;
+				///TrackResponse/Shipment/Package/Activity/ActivityLocation/Description
+				$description = $activity->ActivityLocation->Description;
+				///TrackResponse/Shipment/Package/Activity/Status/StatusType/Description
+				$status = $activity->Status->StatusType->Description;
+	
+				$citySpaceSafe = str_replace(" ", "_", $city);
+				$url="http://local.yahooapis.com/MapsService/V1/geocode?appid=YD-9G7bey8_JXxQP6rxl.fBFGgCdNjoDMACQA--&city=".$citySpaceSafe."&state=".$state."&country=".$country;
+		
+				$crl = curl_init();
+				$timeout = 5;
+				curl_setopt ($crl, CURLOPT_URL,$url);
+				curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+				curl_setopt ($crl, CURLOPT_CONNECTTIMEOUT, $timeout);
+				$ret = curl_exec($crl);
+				curl_close($crl);
+		
+				$LatLongXML = simplexml_load_string($ret);
+	
+				$lat = $LatLongXML->Result->Latitude;
+				$long = $LatLongXML->Result->Longitude;
+				//echo $lat."\n";
+				//echo $long."\n";
+				$newGLatLongStr = "new GLatLng(".$lat.",".$long.")";
+				
+				if ($newGLatLongStr == "new GLatLng(,)")
+				{
+					//echo "%**FAIL:".substr($newGLatLongStr, 0, strlen($newGLatLongStr)-1)."**END FAIL**#";
+					if (substr( $newGLatLongStr, strlen( $newGLatLongStr ) - 1 ) == ",")
+					{
+						$newGLatLongStr = substr($newGLatLongStr, 0, strlen($newGLatLongStr)-1);
+					}
+					$count++;
+					continue;			
+				}
+				else
+				{
+					$trackingPoints = $trackingPoints.$newGLatLongStr;
+					
+					$count++;
+				}
+			}
+			
+			//echo "!!**FAIL:".substr($trackingPoints, 0, strlen($trackingPoints)-1)."**END FAIL**@@";
+			//echo "!!SubStr:".substr( $trackingPoints, strlen( $trackingPoints ) - 1 )."EndSubStr@@";
+			//echo substr( $trackingPoints, strlen( $trackingPoints ) - 1 ) == ",";
+			if (substr( $trackingPoints, strlen( $trackingPoints ) - 1 ) == ",")
+			{
+				//echo "AWESOME!";
+				$trackingPoints = substr($trackingPoints, 0, strlen($trackingPoints)-1);
+			}
+	
+			echo $trackingPoints.", new GLatLng(35.199574,-97.441453)], '#ff0000', 4);\n";
+			echo "		map.addOverlay(trackingLine);\n";
+			
+			$count = 0;
+	
+			foreach ($simplexmldoc->Shipment->Package->Activity as $activity)
+			{
+				$city = $activity->ActivityLocation->Address->City;
+				$state = $activity->ActivityLocation->Address->StateProvinceCode;
+				$country = $activity->ActivityLocation->Address->CountryCode;
+				///TrackResponse/Shipment/Package/Activity/ActivityLocation/Description
+				$description = $activity->ActivityLocation->Description;
+				///TrackResponse/Shipment/Package/Activity/Status/StatusType/Description
+				$status = $activity->Status->StatusType->Description;
+				$dateTime = date("r",StrToTime($activity->Date." ".$activity->Time));
+	
+				$citySpaceSafe = str_replace(" ", "_", $city);
+				$url="http://local.yahooapis.com/MapsService/V1/geocode?appid=YD-9G7bey8_JXxQP6rxl.fBFGgCdNjoDMACQA--&city=".$citySpaceSafe."&state=".$state."&country=".$country;
+		
+				$crl = curl_init();
+				$timeout = 5;
+				curl_setopt ($crl, CURLOPT_URL,$url);
+				curl_setopt ($crl, CURLOPT_RETURNTRANSFER, 1);
+				curl_setopt ($crl, CURLOPT_CONNECTTIMEOUT, $timeout);
+				$ret = curl_exec($crl);
+				curl_close($crl);
+		
+				$LatLongXML = simplexml_load_string($ret);
+	
+				$lat = $LatLongXML->Result->Latitude;
+				$long = $LatLongXML->Result->Longitude;
+				$newGLatLongStr = "new GLatLng(".$lat.",".$long.")";
+				
+				
+				if ($newGLatLongStr == "new GLatLng(,)")
+				{
+					continue;			
+				}
+				else
+				{
+					echo "tempLatLong = new GLatLng(".$lat.",".$long.");";
+					echo "latlngbounds.extend( tempLatLong );";
+	
+					echo "trackingMarkers[".$count."] = new GMarker(new GLatLng(".$lat.",".$long."), {draggable: false, title:'".$dateTime." - ".$city.", ".$state." ".$country." - ".$description." - ".$status."'});\n";
+					echo "map.addOverlay(trackingMarkers[".$count."]);\n";
+					$count++;
+				}
+			}
+			
+			echo "tempLatLong = new GLatLng(35.199574,-97.441453);";
+			echo "latlngbounds.extend( tempLatLong );";
+			
+			echo "trackingMarkers[".$count."] = new GMarker(new GLatLng(35.199574,-97.441453), {draggable: false, title:'Shipped from CIDL.'});\n";
+			echo "map.addOverlay(trackingMarkers[".$count."]);\n";
+			$count++;
+	
+			echo "map.setCenter( latlngbounds.getCenter( ), map.getBoundsZoomLevel( latlngbounds ) );";
+		}
+
+		
+
+?>
+}
+
+
+
+function makeRequest(url, parameters){
+	if (window.XMLHttpRequest) { // Mozilla, Safari,...
+		http_request = new XMLHttpRequest();
+		if (http_request.overrideMimeType)
+		{
+			http_request.overrideMimeType('text/xml');
+		}
+	}
+	else if (window.ActiveXObject) { // IE
+		try {
+		http_request = new ActiveXObject("Msxml2.XMLHTTP");
+		} catch (e) {
+		try {
+		http_request = new ActiveXObject("Microsoft.XMLHTTP");
+		} catch (e) {}
+		}
+	}
+	if (!http_request) {
+		alert('Cannot create XMLHTTP instance');
+		return false;
+	}
+	http_request.onreadystatechange = alertContents;
+	http_request.open('GET', url + parameters, true);
+	http_request.send(null);
+}
+
+function alertContents() {
+  if (http_request.readyState == 4) {
+      if (http_request.status == 200) {
+          //alert(http_request.responseText);
+		  window.location.reload(true);
+      } else {
+          alert('There was a problem with the request.');
+      }
+  }
+} 
+
+
+
+function SetMapSize() {
+ var viewportwidth;
+  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+ 
+ if (typeof window.innerWidth != 'undefined')
+ {
+      viewportwidth = window.innerWidth
+ }
+ 
+// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+
+ else if (typeof document.documentElement != 'undefined'
+     && typeof document.documentElement.clientWidth !=
+     'undefined' && document.documentElement.clientWidth != 0)
+ {
+       viewportwidth = document.documentElement.clientWidth
+ }
+ 
+ // older versions of IE
+ 
+ else
+ {
+       viewportwidth = document.getElementsByTagName('body')[0].clientWidth
+ }
+ 	viewportwidth = viewportwidth;
+	// get the div element
+	d = document.getElementById('map');
+	// set the width
+	d.style.width=viewportwidth+"px";
+	
+	 var viewportheight;
+  // the more standards compliant browsers (mozilla/netscape/opera/IE7) use window.innerWidth and window.innerHeight
+ 
+ if (typeof window.innerWidth != 'undefined')
+ {
+      viewportheight = window.innerHeight
+ }
+ 
+// IE6 in standards compliant mode (i.e. with a valid doctype as the first line in the document)
+
+ else if (typeof document.documentElement != 'undefined'
+     && typeof document.documentElement.clientWidth !=
+     'undefined' && document.documentElement.clientWidth != 0)
+ {
+       viewportheight = document.documentElement.clientHeight
+ }
+ 
+ // older versions of IE
+ 
+ else
+ {
+       viewportheight = document.getElementsByTagName('body')[0].clientHeight
+ }
+ 
+ 	viewportheight = viewportheight;
+	// set the width
+	d.style.height=viewportheight+"px";
+}
+
+ 
+//]]>
+</SCRIPT>
